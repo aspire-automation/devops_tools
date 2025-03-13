@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Docker system prune to remove all unused containers, networks, images, and optionally volumes.
+# -f: Force the prune operation without confirmation
+# --volumes: Remove unused volumes as well
+
+echo "Starting Docker prune..."
+
+# Perform the prune
+docker system prune -af --volumes
+
+# Check the exit status of the prune command
+if [ $? -eq 0 ]; then
+  echo "Docker prune completed successfully."
+else
+  echo "Docker prune encountered an issue."
+fi
