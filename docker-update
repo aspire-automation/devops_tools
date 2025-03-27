@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Time to wait in seconds before checking container status
+WAIT_TIME=30
+
+# Find all directories containing docker compose.yml files for autoadmin
+compose_dirs=$(find /home/autoadmin -type f \( -name "docker-compose.yaml" -o -name "compose.yaml" \) -exec dirname {} \;)
+
+# Loop through each directory found
+for dir in $compose_dirs; do
+    echo "Processing directory: $dir"
+    
+    # Change to the directory
+    cd "$dir" || continue
+    
+    # Pull the latest images
+    echo "Pulling latest Docker images in $dir"
+    docker compose pull
+    
+    # Restart the containers
+    echo "Restarting Docker containers in $dir"
+    docker compose down
+    docker compose up -d
+    
+    # Wait for the specified period before checking the container status
+    echo "Waiting for $WAIT_TIME seconds before checking container status"
+    sleep "$WAIT_TIME"
+    
+    # Get all the services defined in docker compose.yml
+    services=$(docker compose config --services)
+    
+    echo "Checking if all containers are running for services in $dir"
+    
+    for service in $services; do
+        # Check the status of each service's container
+        container_status=$(docker compose ps | grep "$service" | awk '{print $8}')
+        
+        # If container status is not "Up", report an error
+        if [[ $container_status != "Up" ]]; then
+            echo "Error: Service ($service) is not running  in $dir"
+            exit 1
+        fi
+    done
+done
+echo "All containers are running OK"
+# Perform a docker system prune if all containers are running fine
+echo "Pruning unused Docker resources"
+docker system prune -a -f
